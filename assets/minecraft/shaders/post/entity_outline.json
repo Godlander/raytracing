@@ -1,0 +1,19 @@
+{
+  "targets": [
+    "final",
+    "swap",
+    "last"
+  ],
+  "passes": [
+    {
+      "name": "render",
+      "intarget": "minecraft:main",
+      "outtarget": "swap",
+      "auxtargets": [
+        {"name": "LastSampler", "id": "last"}
+      ]
+    },
+    {"name": "copy", "intarget": "swap", "outtarget": "last"},
+    {"name": "copy", "intarget": "swap", "outtarget": "final"}
+  ]
+}

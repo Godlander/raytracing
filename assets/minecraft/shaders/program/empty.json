@@ -1,0 +1,10 @@
+{
+    "blend": {
+        "func": "add",
+        "srcrgb": "one",
+        "dstrgb": "zero"
+    },
+    "vertex": "screenquad",
+    "fragment": "empty",
+    "attributes": [ "Position" ]
+}

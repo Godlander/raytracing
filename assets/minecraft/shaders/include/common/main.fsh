@@ -1,0 +1,1 @@
+discardControlGLPos(gl_FragCoord.xy, glpos);

@@ -1,0 +1,14 @@
+{
+	"textures": {
+		"a": "sphere"
+	},
+	"elements": [
+		{
+			"from": [8, 0, 8],
+			"to": [8.0001, 0, 8.0001],
+			"faces": {
+				"north": {"uv": [0, 0, 16, 16], "texture": "#a"}
+			}
+		}
+	]
+}
