@@ -151,6 +151,7 @@ vec3 render(vec3 ro, vec3 rd) {
         vec3 pos = ro + t*rd;
         vec3 norm = getnormal(pos);
         float shadow = shadows(pos, sundir, 0.01, 3);
+        //materials
         switch(o.type) {
             case 1: //plane
                 color = vec3(checkerboard(pos.xz) + 0.5);
