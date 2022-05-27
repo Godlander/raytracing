@@ -37,4 +37,4 @@ in the `hit` function, you can change any object added to the scene to the new m
 
 a working prototype is in the pack, just summon an invisible armorstand wearing dirt on its head and it should show up as a sphere in the rendered scene
 
-however, performance of these dynamic objects is pretty bad lol. i thought i could make some sort of sculpting demo with them but 
+however, performance of these dynamic objects is pretty bad lol. i thought i could make some sort of sculpting demo with them but fps drops noticeably with just a few.
