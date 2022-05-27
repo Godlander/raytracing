@@ -8,6 +8,8 @@ summon end_crystal x y z {Glowing:1b,BeamTarget:{X:x,Y:y,Z:z}}
 
 make sure to replace the `x` `y` and `z` with your own coordinates.
 
+![image](https://user-images.githubusercontent.com/16228717/170604180-cf979f10-dca2-4141-b1a4-1640d2fb470d.png)
+
 # Editing the shader
 
 ### adding shapes
