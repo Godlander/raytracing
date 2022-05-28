@@ -77,7 +77,7 @@ obj hit(in vec3 pos) {//obj     pos                     size                    
     //add 20 spheres
     for (int i = 0; i < 20; i++) {
         float r = 1 + 0.5*sin(i*PI/10.0);
-        o = Add(o, Sphere(pos + 8*vec3(r*cos(i*PI/10.0), -1, r*sin(i*PI/10.0)), r, 2));
+        o = Add(o, Sphere(pos + 8*vec3(r*cos(i*PI/10.0), -1, r*sin(i*PI/10.0)) + vec3(-5, 0, -5), r, 2));
     }
 
     for (int i = 0; i < nobjs; i++) {
@@ -100,30 +100,20 @@ float checkerboard(in vec2 p) {
     return 0.5 - 0.5*i.x*i.y;
 }
 float shadows(in vec3 ro, in vec3 rd, in float tmin, in float tmax) {
-    float vol = (0.8-ro.y)/rd.y;
-    if (vol > 0.0) tmax = min(tmax, vol);
-    float res = 1.0;
-    float t = tmin;
-    for(int i = 0; i < 50; i++) {
+    float soft = 1.0;
+    float ph = 1e20;
+    for (float t = tmin; t < tmax;) {
         float h = hit(ro + rd*t).depth;
-        float s = clamp(8.0*h/t,0.0,1.0);
-        res = min(res, s*s*(3.0-2.0*s));
-        t += clamp(h, 0.02, 0.2);
-        if (res < 0.005 || t > tmax) break;
+        if (h < 0.0001) return 0;
+
+        float y = h*h/(2.0*ph);
+        float d = sqrt(h*h-y*y);
+        soft = min(soft, 4*d/max(0,t-y));
+        ph = h;
+
+        t += h;
     }
-    return clamp(res, 0.3, 1.0);
-    //float vol = (0.8-ro.y)/rd.y;
-    //if (vol > 0.0) tmax = min(tmax, vol);
-    //float res = 1.0;
-    //float t = tmin;
-    //for(int i = 0; i < 50; i++) {
-    //    float h = hit(ro + rd*t).depth;
-    //    float s = clamp(8.0*h/t,0.0,1.0);
-    //    res = min(res, s*s*(3.0-2.0*s));
-    //    t += clamp(h, 0.02, 0.2);
-    //    if (res < 0.004 || t > tmax) break;
-    //}
-    //return clamp(res, 0.3, 1.0);
+    return soft;
 }
 float AO(in vec3 pos, in vec3 norm) {
     float occ = 0.0;
@@ -140,7 +130,7 @@ float AO(in vec3 pos, in vec3 norm) {
 //--------------------------------------------------------------------------------
 
 vec3 getnormal(in vec3 pos) {
-    vec2 e = vec2(0.001,0);
+    vec2 e = vec2(0.0001,0);
     return normalize(vec3(hit(pos+e.xyy).depth-hit(pos-e.xyy).depth,
                           hit(pos+e.yxy).depth-hit(pos-e.yxy).depth,
                           hit(pos+e.yyx).depth-hit(pos-e.yyx).depth));
@@ -153,27 +143,28 @@ vec3 render(vec3 ro, vec3 rd, float fardepth, vec3 maincolor) {
         o = hit(ro + t*rd);
         //if (h.depth < o.depth) o = h;
         //if hit
-        if (o.depth < 0.001) break;
+        if (o.depth < 0.0001) break;
         t += o.depth;
         //exceed far plane
         if (t >= fardepth) break;
     }
     //coloring
     vec3 sky = vec3(0.7, 0.9, 1.1);
-    vec3 sunlight = vec3(0.5,0.4,0.3);
+    vec3 sunlight = vec3(1.5,1.2,1.0);
+    vec3 skylight = vec3(0.1,0.2,0.3);
+    vec3 indlight = vec3(0.4,0.3,0.2);
     //fake atmosphere by dimming up
     vec3 color = sky - max(rd.y,0.0)*0.3;
-    vec3 sundir = normalize(vec3(-0.5, 0.4, -0.6));
-    float sun = clamp(dot(sundir,rd), 0.0, 1.0);
+    vec3 sundir = normalize(vec3(-0.5, 0.6, -0.6));
+    float sunamount = clamp(dot(sundir,rd), 0.0, 1.0);
+    //scene
     if (t < fardepth) {
         vec3 pos = ro + t*rd;
         vec3 norm = getnormal(pos);
-        float shadow = shadows(pos, sundir, 0.01, 3);
         //materials
         switch(o.type) {
             case 1: //plane
-                color = vec3(checkerboard(pos.xz) + 0.5);
-                color *= shadow;
+                color = vec3(checkerboard(pos.xz) + 0.3);
                 break;
             case 2: //sphere
                 color = vec3(0.6, 0.3, 0.4);
@@ -181,17 +172,34 @@ vec3 render(vec3 ro, vec3 rd, float fardepth, vec3 maincolor) {
                 break;
             default: color = (norm+1)/2;
         }
-        color = clamp(color, 0.0, 1.0);
-        color *= AO(pos, norm);
+        //lighting
+        float skyamount = clamp(0.5 + 0.5*norm.y, 0.0, 1.0);
+        float indamount = clamp(dot(norm, normalize(sundir*vec3(-1.0,0.0,-1.0))), 0.0, 1.0);
+
+        float ao = AO(pos, norm);
+        float shadow = shadows(pos, sundir, 0.01, 40);
+        shadow = clamp(mix(0, shadow, smoothstep(0, 1, dot(norm, sundir)))*10, 0,1);
+
+        vec3 light = 0.4 * sunlight * pow(vec3(shadow),vec3(1.0,1.2,1.5));
+        light += skyamount * skylight * ao;
+        light += indamount * indlight * ao;
+
+        color *= light;
+
         //fog
         color = mix(color, sky, smoothstep(0,1, clamp((t-fogstart)/(renderdistance-fogstart) ,0,1)));
     }
+    //world
     else if (t < renderdistance) {
         color = maincolor;
+        //fog
         color = mix(color, sky, smoothstep(0,1, clamp((fardepth-fogstart)/(renderdistance-fogstart) ,0,1)));
     }
     //sun glare
-    color += 0.25*vec3(0.8,0.4,0.2)*pow(sun, 4.0);
+    color += 0.25*vec3(0.8,0.4,0.2)*pow(sunamount, 4.0);
+
+    //return color
+    color = clamp(color, 0.0, 1.0);
     return color;
 }
 void main() {
