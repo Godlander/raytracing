@@ -20,7 +20,7 @@ void main() {
     fragColor = color;
 
     ivec2 coord = ivec2(gl_FragCoord.xy);
-    if (shape > 0 && int(gl_FragCoord.y) == 4) {
+    if (coord.y == 2 && coord.x < (id+1)*3) {
         if (coord.x == 0) {
             fragColor = vec4(id/255.,0,0,1);
         }
@@ -28,5 +28,5 @@ void main() {
             fragColor = storefloat(position[coord.x % 3]);
         }
         else discard;
-    } else discard;
+    }
 }

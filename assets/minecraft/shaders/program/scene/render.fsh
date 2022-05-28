@@ -1,6 +1,7 @@
 #version 330
 
 uniform sampler2D DiffuseSampler;
+uniform sampler2D DepthSampler;
 uniform sampler2D StorageSampler;
 
 uniform vec2 OutSize;
@@ -10,12 +11,16 @@ in vec2 OneTexel;
 in vec2 ratio;
 in vec3 position;
 in mat3 viewmat;
+in vec2 proj;
 flat in int nobjs;
 
 out vec4 fragColor;
 
 #define AA 1
 //#define DEBUG
+
+#define renderdistance 80
+#define fogstart 40
 
 #define PI 3.14159265358979323846
 
@@ -27,6 +32,12 @@ int decodeInt(vec3 ivec) {
 }
 float decodeFloat(vec3 ivec) {
     return decodeInt(ivec) / FPRECISION;
+}
+#define near 0.05
+#define far  1000.0
+float linearizeDepth(float depth) {
+    float z = depth * 2.0 - 1.0;
+    return (2.0 * near * far) / (far + near - z * (far - near));
 }
 //--------------------------------------------------------------------------------
 //sdfs
@@ -62,6 +73,12 @@ obj hit(in vec3 pos) {//obj     pos                     size                    
     o = Add(o,          Sphere( pos + vec3(2,1,4),      1,                      2));
     o = Add(o,          Cube(   pos + vec3(5,1,1),      vec3(1),                3));
     o = SmoothAdd(o,    Sphere( pos + vec3(5.5,0.5,.5), 1,                      3),         0.5);
+
+    //add 20 spheres
+    for (int i = 0; i < 20; i++) {
+        float r = 1 + 0.5*sin(i*PI/10.0);
+        o = Add(o, Sphere(pos + 8*vec3(r*cos(i*PI/10.0), -1, r*sin(i*PI/10.0)), r, 2));
+    }
 
     for (int i = 0; i < nobjs; i++) {
         o = Add(o,  Sphere( pos - position + ((vec3(255.0, 1.0, 1.0 / 255.0) * mat3(
@@ -128,7 +145,7 @@ vec3 getnormal(in vec3 pos) {
                           hit(pos+e.yxy).depth-hit(pos-e.yxy).depth,
                           hit(pos+e.yyx).depth-hit(pos-e.yyx).depth));
 }
-vec3 render(vec3 ro, vec3 rd) {
+vec3 render(vec3 ro, vec3 rd, float fardepth, vec3 maincolor) {
     //raymarching
     float t = 0.;
     obj o;
@@ -139,7 +156,7 @@ vec3 render(vec3 ro, vec3 rd) {
         if (o.depth < 0.001) break;
         t += o.depth;
         //exceed far plane
-        if (t >= 80.) break;
+        if (t >= fardepth) break;
     }
     //coloring
     vec3 sky = vec3(0.7, 0.9, 1.1);
@@ -147,7 +164,8 @@ vec3 render(vec3 ro, vec3 rd) {
     //fake atmosphere by dimming up
     vec3 color = sky - max(rd.y,0.0)*0.3;
     vec3 sundir = normalize(vec3(-0.5, 0.4, -0.6));
-    if (t < 80.) {
+    float sun = clamp(dot(sundir,rd), 0.0, 1.0);
+    if (t < fardepth) {
         vec3 pos = ro + t*rd;
         vec3 norm = getnormal(pos);
         float shadow = shadows(pos, sundir, 0.01, 3);
@@ -166,15 +184,21 @@ vec3 render(vec3 ro, vec3 rd) {
         color = clamp(color, 0.0, 1.0);
         color *= AO(pos, norm);
         //fog
-        color = mix(color, sky, 1.0-exp(-0.00001*t*t*t));
+        color = mix(color, sky, smoothstep(0,1, clamp((t-fogstart)/(renderdistance-fogstart) ,0,1)));
     }
-    float sun = clamp(dot(sundir,rd), 0.0, 1.0 );
+    else if (t < renderdistance) {
+        color = maincolor;
+        color = mix(color, sky, smoothstep(0,1, clamp((fardepth-fogstart)/(renderdistance-fogstart) ,0,1)));
+    }
+    //sun glare
     color += 0.25*vec3(0.8,0.4,0.2)*pow(sun, 4.0);
     return color;
 }
 void main() {
     //data
     vec3 color = vec3(0);
+    vec3 maincolor = texture(DiffuseSampler, texCoord).rgb;
+    float depth = linearizeDepth(texture(DepthSampler, texCoord).r);
 
 //msaa
 #if AA > 1
@@ -182,16 +206,20 @@ for(int m=0; m<AA; m++)
 for(int n=0; n<AA; n++) {
     // pixel coordinates
     vec2 offset = (vec2(float(m),float(n)) / float(AA) - 0.5) * 2 / OutSize;
-    vec2 uv = (texCoord * 2 - 1) * ratio + offset;
+    vec2 uv = (texCoord * 2 - 1) + offset;
 #else
-    vec2 uv = (texCoord * 2 - 1) * ratio;
+    vec2 uv = (texCoord * 2 - 1);
 #endif
 
     //ray start
     vec3 ro = position;
-    vec3 rd = viewmat * normalize(vec3(uv,-1));
+    vec3 rd = viewmat * vec3(uv/proj,-1);
+    //warp depth to fov
+    float l = length(rd);
+    rd /= l;
+    depth = depth * l;
     //render
-    color += render(ro, rd);
+    color += render(ro, rd, min(depth, renderdistance), maincolor);
 
 #if AA > 1
 }

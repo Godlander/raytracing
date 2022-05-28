@@ -18,6 +18,7 @@ uniform mat3 IViewRotMat;
 
 out vec4 pos;
 out mat3 viewmat;
+out vec2 proj;
 out vec2 rotation;
 
 const vec2[] corners = vec2[](
@@ -27,6 +28,7 @@ const vec2[] corners = vec2[](
 void main() {
     pos = vec4(0);
     viewmat = inverse(IViewRotMat);
+    proj = vec2(ProjMat[1][1],ProjMat[0][0]);
     gl_Position = vec4(0); //make all faces disappear
     if (gl_VertexID == 0) { //only get position from first vertex
         pos = vec4(IViewRotMat * Position, 1);

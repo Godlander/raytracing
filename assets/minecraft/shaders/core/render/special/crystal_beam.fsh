@@ -9,24 +9,34 @@ uniform mat4 ProjMat;
 
 in vec4 pos;
 in mat3 viewmat;
+in vec2 proj;
 in vec2 rotation;
 
 out vec4 fragColor;
 
-vec4 storefloat(float f) {
-    return vec4(floor(f) / 255.0, fract(f), fract(f * 255.0), 1);
+vec4 storepos(float f, int i) {
+    if (i == 0) return vec4(floor(f) / 255.0, fract(f), fract(f * 255.0), 1);
+    else return vec4(fract(f * 255 * 255), fract(f * 255 * 255 * 255), fract(f * 255 * 255 * 255), 1);
 }
 
 void main() {
     vec3 p = -(pos.xyz / pos.w) + 128.0; //turn relative coords backwards to act like world coords
     fragColor = vec4(0);
-    if (all(lessThan(gl_FragCoord.xy, vec2(3.0, 4.0)))) {
-        //3 pixels is x y z position
-        if (int(gl_FragCoord.y) == 3) {
-            fragColor = storefloat(p[int(gl_FragCoord.x)]);
-        }
-        else { //3x3 view matrix
-            fragColor = vec4(encodeFloat(viewmat[int(gl_FragCoord.x)][int(gl_FragCoord.y)]), 1);
+    ivec2 coord = ivec2(gl_FragCoord.xy);
+    if (coord.y < 1) {
+        switch (coord.x) {
+            //6 pixels for x y z position
+            case 0: case 1: case 2: case 3: case 4: case 5:
+                fragColor = storepos(p[coord.x/2], coord.x%2);
+                break;
+            //3x3 view matrix
+            case 6: case 7: case 8: case 9: case 10: case 11: case 12: case 13: case 14:
+                fragColor = vec4(encodeFloat(viewmat[coord.x%3][(coord.x/3)-2]), 1);
+                break;
+            //proj[0][0] and proj[1][1]
+            case 15: case 16:
+                fragColor = vec4(encodeFloat(proj[coord.x%2]), 1);
+                break;
         }
     } else discard;
 }

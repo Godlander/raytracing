@@ -4,11 +4,12 @@
         "srcrgb": "one",
         "dstrgb": "zero"
     },
-    "vertex": "glow/render",
-    "fragment": "glow/render",
+    "vertex": "scene/render",
+    "fragment": "scene/render",
     "attributes": [ "Position" ],
     "samplers": [
         { "name": "DiffuseSampler" },
+        { "name": "DepthSampler" },
         { "name": "StorageSampler" }
     ],
     "uniforms": [
