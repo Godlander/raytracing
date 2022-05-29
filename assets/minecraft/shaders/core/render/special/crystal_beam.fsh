@@ -1,7 +1,6 @@
 #version 150
 
 #moj_import <fog.glsl>
-#moj_import <utils.glsl>
 
 uniform sampler2D Sampler0;
 uniform float GameTime;
@@ -14,11 +13,27 @@ in vec2 rotation;
 
 out vec4 fragColor;
 
+#define FPRECISION 4000000.0
+int intmod(int i, int base) {
+    return i - (i / base * base);
+}
+vec3 encodeInt(int i) {
+    int s = int(i < 0) * 128;
+    i = abs(i);
+    int r = intmod(i, 256);
+    i = i / 256;
+    int g = intmod(i, 256);
+    i = i / 256;
+    int b = intmod(i, 128);
+    return vec3(float(r) / 255.0, float(g) / 255.0, float(b + s) / 255.0);
+}
+vec3 encodeFloat(float i) {
+    return encodeInt(int(i * FPRECISION));
+}
 vec4 storepos(float f, int i) {
     if (i == 0) return vec4(floor(f) / 255.0, fract(f), fract(f * 255.0), 1);
     else return vec4(fract(f * 255 * 255), fract(f * 255 * 255 * 255), fract(f * 255 * 255 * 255), 1);
 }
-
 void main() {
     vec3 p = -(pos.xyz / pos.w) + 128.0; //turn relative coords backwards to act like world coords
     fragColor = vec4(0);

@@ -29,9 +29,7 @@ const vec2[] corners = vec2[](
     vec2(0, 1), vec2(0, 0), vec2(1, 0), vec2(1, 1)
 );
 
-#moj_import <common/head.vsh>
 void main() {
-#moj_import <common/main.vsh>
     gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
     texCoord0 = UV0;
 
@@ -45,5 +43,4 @@ void main() {
         gl_Position = vec4(screenPos, 0.0, 1.0);
         position = -(IViewRotMat * Position) + 128;
     }
-#moj_import <common/foot.vsh>
 }

@@ -66,6 +66,7 @@ obj SmoothIntersect(obj a, obj b, float k) {
     return obj(mix(b.depth, a.depth, h) + k*h*(1.0-h), a.type);
 }
 //--------------------------------------------------------------------------------
+//scene
 obj hit(in vec3 pos) {//obj     pos                     size                    material    smoothness
     obj o =             Plane(  pos + 2,                                        1);
     o = SmoothAdd(o,    Sphere( pos + vec3(0,2.5,0),    2,                      1),         0.5);
@@ -88,27 +89,23 @@ obj hit(in vec3 pos) {//obj     pos                     size                    
     }
     return o;
 }
-
 //--------------------------------------------------------------------------------
 //filters
 float checkerboard(in vec2 p) {
-    // filter kernel
     vec2 w = max(abs(dFdx(p)), abs(dFdy(p))) + 0.01;
-    // analytical integral (box filter)
     vec2 i = 2.0*(abs(fract((p-0.5*w)/2.0)-0.5)-abs(fract((p+0.5*w)/2.0)-0.5))/w;
-    // xor pattern
     return 0.5 - 0.5*i.x*i.y;
 }
 float shadows(in vec3 ro, in vec3 rd, in float tmin, in float tmax) {
     float soft = 1.0;
-    float ph = 1e20;
+    float ph = renderdistance;
     for (float t = tmin; t < tmax;) {
         float h = hit(ro + rd*t).depth;
         if (h < 0.0001) return 0;
 
         float y = h*h/(2.0*ph);
         float d = sqrt(h*h-y*y);
-        soft = min(soft, 4*d/max(0,t-y));
+        soft = min(soft, 16*d/max(0,t-y));
         ph = h;
 
         t += h;
@@ -128,9 +125,9 @@ float AO(in vec3 pos, in vec3 norm) {
     return clamp(1.0 - 3.0 * occ, 0.0, 1.0) * (0.5 + 0.5 * norm.y);
 }
 //--------------------------------------------------------------------------------
-
+//drawing
 vec3 getnormal(in vec3 pos) {
-    vec2 e = vec2(0.0001,0);
+    vec2 e = vec2(0.001,0);
     return normalize(vec3(hit(pos+e.xyy).depth-hit(pos-e.xyy).depth,
                           hit(pos+e.yxy).depth-hit(pos-e.yxy).depth,
                           hit(pos+e.yyx).depth-hit(pos-e.yyx).depth));
@@ -177,8 +174,8 @@ vec3 render(vec3 ro, vec3 rd, float fardepth, vec3 maincolor) {
         float indamount = clamp(dot(norm, normalize(sundir*vec3(-1.0,0.0,-1.0))), 0.0, 1.0);
 
         float ao = AO(pos, norm);
-        float shadow = shadows(pos, sundir, 0.01, 40);
-        shadow = clamp(mix(0, shadow, smoothstep(0, 1, dot(norm, sundir)))*10, 0,1);
+        float shadow = shadows(pos, sundir, 0.001, 40);
+        shadow = clamp(mix(0,shadow, smoothstep(0, 1, dot(norm, sundir))), 0,1);
 
         vec3 light = 0.4 * sunlight * pow(vec3(shadow),vec3(1.0,1.2,1.5));
         light += skyamount * skylight * ao;
@@ -202,6 +199,7 @@ vec3 render(vec3 ro, vec3 rd, float fardepth, vec3 maincolor) {
     color = clamp(color, 0.0, 1.0);
     return color;
 }
+//--------------------------------------------------------------------------------
 void main() {
     //data
     vec3 color = vec3(0);

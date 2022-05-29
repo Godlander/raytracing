@@ -1,1 +1,0 @@
-glpos = gl_Position;
