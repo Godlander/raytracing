@@ -169,18 +169,18 @@ vec3 render(vec3 ro, vec3 rd, float fardepth, vec3 maincolor) {
             default: color = (norm+1)/2;
         }
         //lighting
-        //float skyamount = clamp(0.5 + 0.5*norm.y, 0.0, 1.0);
-        //float indamount = clamp(dot(norm, normalize(sundir*vec3(-1.0,0.0,-1.0))), 0.0, 1.0);
+        float skyamount = clamp(0.5 + 0.5*norm.y, 0.0, 1.0);
+        float indamount = clamp(dot(norm, normalize(sundir*vec3(-1.0,0.0,-1.0))), 0.0, 1.0);
 
-        //float ao = AO(pos, norm);
-        //float shadow = shadows(pos, sundir, 0.001, 40);
-        //shadow = clamp(mix(0,shadow, smoothstep(0, 1, dot(norm, sundir))), 0,1);
+        float ao = AO(pos, norm);
+        float shadow = shadows(pos, sundir, 0.001, 40);
+        shadow = clamp(mix(0,shadow, smoothstep(0, 1, dot(norm, sundir))), 0,1);
 
-        //vec3 light = 0.4 * sunlight * pow(vec3(shadow),vec3(1.0,1.2,1.5));
-        //light += skyamount * skylight * ao;
-        //light += indamount * indlight * ao;
+        vec3 light = 0.4 * sunlight * pow(vec3(shadow),vec3(1.0,1.2,1.5));
+        light += skyamount * skylight * ao;
+        light += indamount * indlight * ao;
 
-        //color *= light;
+        color *= light;
 
         //fog
         color = mix(color, sky, smoothstep(0,1, clamp((t-fogstart)/(renderdistance-fogstart) ,0,1)));
