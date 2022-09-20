@@ -100,7 +100,7 @@ float shadows(in vec3 ro, in vec3 rd, in float tmin, in float tmax) {
     float ph = renderdistance;
     for (float t = tmin; t < tmax;) {
         float h = hit(ro + rd*t).depth;
-        if (h < 0.0001) return 0;
+        if (h < 0.0001) return 0.;
 
         float y = h*h/(2.0*ph);
         float d = sqrt(h*h-y*y);
