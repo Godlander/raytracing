@@ -218,7 +218,7 @@ for(int n=0; n<AA; n++) {
 
     //ray start
     vec3 ro = position;
-    vec3 rd = viewmat * vec3(uv/proj,-1);
+    vec3 rd = viewmat * vec3(uv/proj, -1);
     //warp depth to fov
     float l = length(rd);
     rd /= l;

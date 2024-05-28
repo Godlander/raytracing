@@ -1,6 +1,6 @@
 {
 	"textures": {
-		"a": "sphere"
+		"a": "block/hole"
 	},
 	"elements": [
 		{
