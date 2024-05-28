@@ -1,4 +1,4 @@
-# Raymarching Resourcepack
+# Raytracing Resourcepack
 
 To see the shader, equip the resourcepack, load into a world, and summon an item display with blackstone.
 
